@@ -12,10 +12,6 @@ import uuid
 
 
 class InputRouteModel(BaseModel):
-    delivery_date: str = Field(
-        ...,
-        description="The date of deliveries that should be fetched from the database",
-    )
     country: str = Field(
         "MEX", description="The wanted country of deliveries (Either 'MEX' or 'ARG')"
     )
@@ -25,6 +21,17 @@ class InputRouteModel(BaseModel):
     )
     number_of_buses: int = Field(
         200, description="Number of buses that should be used for the route planning"
+    )
+    start_driving: datetime = Field(...)
+    end_driving: datetime = Field(...)
+
+class InputBusEstiamtorModel(BaseModel):
+    delivery_date: str = Field(
+        ...,
+        description="The date of deliveries that should be fetched from the database",
+    )
+    country: str = Field(
+        "MEX", description="The wanted country of deliveries (Either 'MEX' or 'ARG')"
     )
     start_driving: datetime = Field(...)
     end_driving: datetime = Field(...)
@@ -108,10 +115,30 @@ async def dashboard():
     }
 
 
+@app.post('/estimate-trucks')
+async def estimate_trucks(input: InputBusEstiamtorModel):
+    date_format = "%d.%m.%Y"
+    date_object = datetime.strptime(input.delivery_date, date_format)
+
+    time_difference = input.end_driving - input.start_driving
+
+    unix_timestamp = int(date_object.timestamp()) * 1000
+
+    cursor = trips_collection.find(
+        {"date": int(unix_timestamp) + 3600000, "country": input.country}
+    ).limit(100000)
+
+    result = list(cursor)
+    if len(result) == 0:
+        raise HTTPException(status_code=400, detail="No deliveries found")
+    print(len(result))
+    return True
+
 
 
 @app.post("/calculate-route")
-async def root(input: InputRouteModel):
+async def calculate_route(input: InputRouteModel):
+    delivery_date = input.start_driving.date()
     start_driving = input.start_driving.strftime("%Y-%m-%dT%H:%M:%SZ")
     end_driving = input.end_driving.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -157,8 +184,8 @@ async def root(input: InputRouteModel):
         )
         hours_1 = 9
 
-    date_format = "%d.%m.%Y"
-    date_object = datetime.strptime(input.delivery_date, date_format)
+    date_format = "%Y-%m-%d"
+    date_object = datetime.strptime(delivery_date.isoformat(), date_format)
 
     unix_timestamp = int(date_object.timestamp()) * 1000
 
