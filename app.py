@@ -58,6 +58,45 @@ client = MongoClient(mongodb_connection_string)
 hack_db = client["hack"]
 trips_collection = hack_db.trips
 routes_collection = hack_db.routes
+clients_collection = hack_db.clients
+
+@app.get("/clients")
+async def clients(page: int = 0, limit: int = 10):
+    cursor = clients_collection.find({}).skip(limit * page-1).limit(limit)
+
+    result = list(cursor)
+    if len(result) == 0:
+        raise HTTPException(status_code=400, detail="No clients found")
+    
+    # transform _id to string
+    for item in result:
+        item["_id"] = str(item["_id"])
+
+    return {
+        "data": result,
+        "total": clients_collection.count_documents({}),
+        "page": page,
+        "limit": limit
+    }
+
+@app.get("/trips")
+async def clients(page: int = 0, limit: int = 10):
+    cursor = trips_collection.find({}).skip(limit * page-1).limit(limit)
+
+    result = list(cursor)
+    if len(result) == 0:
+        raise HTTPException(status_code=400, detail="No trips found")
+    
+    # transform _id to string
+    for item in result:
+        item["_id"] = str(item["_id"])
+
+    return {
+        "data": result,
+        "total": clients_collection.count_documents({}),
+        "page": page,
+        "limit": limit
+    }
 
 @app.get("/dashboard")
 async def dashboard():
