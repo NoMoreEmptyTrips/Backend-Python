@@ -2,11 +2,30 @@ import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import time
+from pydantic import BaseModel, Field
 from pymongo import MongoClient
 import requests
 from config import api_access_token, mongodb_connection_string
 from datetime import datetime
 import json
+import uuid
+
+
+class InputRouteModel(BaseModel):
+    delivery_date: str = Field(
+        ...,
+        description="The date of deliveries that should be fetched from the database",
+    )
+    country: str = Field(
+        "MEX", description="The wanted country of deliveries (Either 'MEX' or 'ARG')"
+    )
+    prioritization: str = Field(
+        "min-total-travel-duration",
+        description="The wanted priorizization (Either 'min-total-travel-duration' or 'min-schedule-completion-time')",
+    )
+    start_driving: datetime = Field(...)
+    end_driving: datetime = Field(...)
+
 
 app = FastAPI(
     title="API",
@@ -25,25 +44,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+client = MongoClient(mongodb_connection_string)
+hack_db = client["hack"]
+trips_collection = hack_db.trips
+routes_collection = hack_db.routes
 
-@app.get("/calculate-route")
-async def root(start_date: str, country: str):
-    client = MongoClient(mongodb_connection_string)
 
+@app.post("/calculate-route")
+async def root(input: InputRouteModel):
+    print(input.start_driving.strftime('%Y-%m-%dT%H:%M:%S.%f%z'))
     date_format = "%d.%m.%Y"
-    date_object = datetime.strptime(start_date, date_format)
+    date_object = datetime.strptime(input.delivery_date, date_format)
 
-# Convert the datetime object to a Unix timestamp in milliseconds
     unix_timestamp = int(date_object.timestamp()) * 1000
-    print(unix_timestamp)
-    hack_db = client["hack"]
-    "1675209600000"
 
-    trips_collection = hack_db.trips
-
-    cursor = trips_collection.find({"date": int(1675209600000), "country": country}).limit(
-        500
-    )
+    cursor = trips_collection.find(
+        {"date": int(unix_timestamp) + 3600000, "country": input.country}
+    ).limit(100000)
 
     result = list(cursor)
     if len(result) == 0:
@@ -53,9 +70,15 @@ async def root(start_date: str, country: str):
     shipments = []
     id_value = 0
     for x in result:
-        ''' print(x["plant_name"]) '''
-        if x["plant_name"] is not None:
-            ''' print(x["plant_name"]) '''
+        if (
+            x["plant_name"] is not None
+            and x["plant_code"] is not None
+            and x["plant_longitude"] is not None
+            and x["plant_latitude"] is not None
+            and x["client_code"] is not None
+            and x["client_longitude"] is not None
+            and x["client_latitude"] is not None
+        ):
             try:
                 locations.index(
                     {
@@ -86,81 +109,55 @@ async def root(start_date: str, country: str):
                 )
             shipments.append(
                 {
-                    "name": str(id_value),
+                    "name": str(uuid.uuid4()),
                     "from": x["plant_code"],
                     "to": x["client_code"],
                     "size": {"boxes": 100},
                     "pickup_duration": 10,
                     "dropoff_duration": 10,
+                    "pickup_times": [
+                        {
+                            "earliest": input.start_driving.strftime('%Y-%m-%dT%H:%M:%S.%f%z'),
+                            "latest": "2023-02-03T09:15:00Z",
+                            "type": "strict",
+                        }
+                    ],
                 }
             )
         id_value += 1
+        """ "pickup_times": [
+                        {
+                            "earliest": "2022-05-31T09:15:00Z",
+                            "latest": "2022-05-31T09:30:00Z",
+                            "type": "strict",
+                        }
+                    ],
+                    "dropoff_times": [
+                        {
+                            "earliest": "2022-05-31T10:15:00Z",
+                            "latest": "2022-05-31T10:30:00Z",
+                            "type": "soft_end",
+                        }
+                    ], """
 
     vehicles = []
     value_id = 0
-    for i in range(100):
+    for i in range(200):
         vehicles.append(
             {
-                "name": str(value_id),
+                "name": str(uuid.uuid1()),
                 "capacities": {"boxes": 100},
-                "earliest_start": "2023-09-15T08:00:00Z",
-                "latest_end": "2023-09-17T12:00:00Z",
+                "earliest_start": "2023-02-01T09:15:00Z",
+                "latest_end": "2023-02-03T09:15:00Z",
             }
         )
-        value_id +=1
-    print(len(vehicles))
+        value_id += 1
+
     json_data = {
         "version": 1,
         "locations": locations,
         "vehicles": vehicles,
         "shipments": shipments,
-    }
-
-    ''' # Serializing json
-    json_object = json.dumps(json_data, indent=4)
-
-    # Writing to sample.json
-    with open("sample.json", "w") as outfile:
-        outfile.write(json_object) '''
-
-    json_test = {
-        "version": 1,
-        "locations": [
-            {
-                "name": "Hat Club",
-                "coordinates": [-73.99566831245832, 40.72724507379965],
-            },
-            {
-                "name": "109th Street",
-                "coordinates": [-73.83597003588466, 40.68956385162866],
-            },
-        ],
-        "vehicles": [
-            {
-                "name": "0",
-                "capacities": {"boxes": 100},
-                "earliest_start": "2023-09-15T08:00:00Z",
-                "latest_end": "2023-09-15T12:00:00Z",
-            }
-        ],
-        "shipments": [
-            {
-                "name": "0",
-                "from": "Hat Club",
-                "to": "109th Street",
-                "size": {"boxes": 10},
-                "pickup_duration": 10,
-                "dropoff_duration": 10,
-            },
-            {
-                "name": "1",
-                "from": "Hat Club",
-                "to": "109th Street",
-                "size": {"boxes": 10},
-                "pickup_duration": 10,
-                "dropoff_duration": 10,
-            },
-        ],
     }
 
     response = requests.post(
@@ -173,7 +170,6 @@ async def root(start_date: str, country: str):
             "Referer": "https://demos.mapbox.com/",
         },
     )
-    print(json_data)
     print(response.json())
     id = response.json()["id"]
     data_ready = False
@@ -192,5 +188,8 @@ async def root(start_date: str, country: str):
         if check_response.status_code == 200:
             data_ready = True
             api_route_response = check_response.json()
-
+    copy = api_route_response.copy()
+    copy["accepted"] = False
+    response = routes_collection.insert_one(copy)
+    api_route_response["route_id"] = str(response.inserted_id)
     return api_route_response
