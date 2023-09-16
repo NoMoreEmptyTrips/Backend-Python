@@ -64,6 +64,9 @@ async def dashboard():
     avg_stops = {}
     avg_empty_km = {}
     avg_wait_time = {}
+    total_odometer = {}
+    dropoffs = {}
+    
     for item in result:
         # Check if routes property exists
         if "routes" not in item:
@@ -72,12 +75,18 @@ async def dashboard():
         stops_count = []
         empty_km = []
         wait_time = []
+        odometer = []
         for route in item["routes"]:
             stops_count.append(len(route["stops"]))
             prevStop = None
             for stop in route["stops"]:
                 wait_time.append(stop["wait"])
+                odometer.append(stop["odometer"] / 1000)
                 if stop["type"] == "dropoff":
+                    if str(item["_id"]) not in dropoffs:
+                        dropoffs[str(item["_id"])] = 1
+                    else:
+                        dropoffs[str(item["_id"])] += 1
                     empty_km.append((stop["odometer"] - prevStop["odometer"]) / 1000)
                     continue
                 prevStop = stop
@@ -87,11 +96,15 @@ async def dashboard():
             avg_empty_km[str(item["_id"])] = (sum(empty_km) / len(empty_km))
         if len(wait_time) != 0:
             avg_wait_time[str(item["_id"])] = (sum(wait_time) / len(wait_time))
+        if len(odometer) != 0:
+            total_odometer[str(item["_id"])] = (sum(odometer) / len(odometer))
 
     return {
         "avg_stops": avg_stops,
         "avg_empty_km": avg_empty_km,
-        "avg_wait_time": avg_wait_time
+        "avg_wait_time": avg_wait_time,
+        "total_odometer": total_odometer,
+        "dropoffs": dropoffs
     }
 
 
