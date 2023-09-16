@@ -137,9 +137,6 @@ async def root(input: InputRouteModel):
         current_date = end_break
         breaks_for_drivers.append(
             {
-                #"earliest_start": start_break_formatted,
-                #"latest_end": end_break_formatted,
-                #"duration": 28800,
                 "earliest_start": start_break_formatted, # #2023-02-17T12:30:00Z
                 "latest_end": end_break_formatted, # #
                 "duration": 28800
@@ -147,17 +144,6 @@ async def root(input: InputRouteModel):
         )
         hours_1 = 9
 
-    print(breaks_for_drivers)
-
-    ''' breaks_for_drivers = [
-        {
-                "earliest_start": "2023-02-01T18:30:00Z", # #2023-02-17T12:30:00Z
-                "latest_end": "2023-02-02T03:30:00Z", # #
-                "duration": 28800
-            }
-    ] '''
-
-    #raise KeyError("HELLO")
     date_format = "%d.%m.%Y"
     date_object = datetime.strptime(input.delivery_date, date_format)
 
@@ -237,20 +223,6 @@ async def root(input: InputRouteModel):
                 }
             )
         id_value += 1
-        """ "pickup_times": [
-                        {
-                            "earliest": "2022-05-31T09:15:00Z",
-                            "latest": "2022-05-31T09:30:00Z",
-                            "type": "strict",
-                        }
-                    ],
-                    "dropoff_times": [
-                        {
-                            "earliest": "2022-05-31T10:15:00Z",
-                            "latest": "2022-05-31T10:30:00Z",
-                            "type": "soft_end",
-                        }
-                    ], """
 
     vehicles = []
     value_id = 0
