@@ -1,0 +1,153 @@
+{
+    "version": 1,
+    "locations": [
+        {
+            "name": "ATC0",
+            "coordinates": [
+                -103.8689,
+                18.98292
+            ]
+        },
+        {
+            "name": "205400982",
+            "coordinates": [
+                -104.7870642,
+                19.2851581
+            ]
+        },
+        {
+            "name": "AHR0",
+            "coordinates": [
+                -110.70985,
+                29.04185
+            ]
+        },
+        {
+            "name": "BDPA",
+            "coordinates": [
+                -99.152534,
+                19.6549523
+            ]
+        },
+        {
+            "name": "BTRE",
+            "coordinates": [
+                -98.96333,
+                19.35502
+            ]
+        },
+        {
+            "name": "205241557",
+            "coordinates": [
+                -98.9107373,
+                19.6420614
+            ]
+        },
+        {
+            "name": "BTVA",
+            "coordinates": [
+                -99.16928613,
+                19.4962587
+            ]
+        },
+        {
+            "name": "AME0",
+            "coordinates": [
+                -89.7670793,
+                20.8963419
+            ]
+        }
+    ],
+    "vehicles": [
+        {
+            "name": "0",
+            "capacities": {
+                "boxes": 100
+            },
+            "earliest_start": "2023-09-15T08:00:00Z",
+            "latest_end": "2023-09-17T12:00:00Z"
+        },
+        {
+            "name": "1",
+            "capacities": {
+                "boxes": 100
+            },
+            "earliest_start": "2023-09-15T08:00:00Z",
+            "latest_end": "2023-09-17T12:00:00Z"
+        },
+        {
+            "name": "2",
+            "capacities": {
+                "boxes": 100
+            },
+            "earliest_start": "2023-09-15T08:00:00Z",
+            "latest_end": "2023-09-17T12:00:00Z"
+        },
+        {
+            "name": "3",
+            "capacities": {
+                "boxes": 100
+            },
+            "earliest_start": "2023-09-15T08:00:00Z",
+            "latest_end": "2023-09-17T12:00:00Z"
+        },
+        {
+            "name": "4",
+            "capacities": {
+                "boxes": 100
+            },
+            "earliest_start": "2023-09-15T08:00:00Z",
+            "latest_end": "2023-09-17T12:00:00Z"
+        },
+        {
+            "name": "5",
+            "capacities": {
+                "boxes": 100
+            },
+            "earliest_start": "2023-09-15T08:00:00Z",
+            "latest_end": "2023-09-17T12:00:00Z"
+        }
+    ],
+    "shipments": [
+        {
+            "name": "156",
+            "from": "ATC0",
+            "to": "205400982",
+            "size": {
+                "boxes": 100
+            },
+            "pickup_duration": 10,
+            "dropoff_duration": 10
+        },
+        {
+            "name": "157",
+            "from": "AHR0",
+            "to": "BDPA",
+            "size": {
+                "boxes": 100
+            },
+            "pickup_duration": 10,
+            "dropoff_duration": 10
+        },
+        {
+            "name": "158",
+            "from": "BTRE",
+            "to": "205241557",
+            "size": {
+                "boxes": 100
+            },
+            "pickup_duration": 10,
+            "dropoff_duration": 10
+        },
+        {
+            "name": "159",
+            "from": "BTVA",
+            "to": "AME0",
+            "size": {
+                "boxes": 100
+            },
+            "pickup_duration": 10,
+            "dropoff_duration": 10
+        }
+    ]
+}
