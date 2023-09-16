@@ -49,6 +49,50 @@ hack_db = client["hack"]
 trips_collection = hack_db.trips
 routes_collection = hack_db.routes
 
+@app.get("/dashboard")
+async def dashboard():
+    cursor = routes_collection.find({}).limit(500)
+
+    result = list(cursor)
+    if len(result) == 0:
+        raise HTTPException(status_code=400, detail="No routes found")
+    
+    # Calculate the total distance of each route
+    avg_stops = {}
+    avg_empty_km = {}
+    avg_wait_time = {}
+    for item in result:
+        # Check if routes property exists
+        if "routes" not in item:
+            continue
+
+        stops_count = []
+        empty_km = []
+        wait_time = []
+        for route in item["routes"]:
+            stops_count.append(len(route["stops"]))
+            prevStop = None
+            for stop in route["stops"]:
+                wait_time.append(stop["wait"])
+                if stop["type"] == "dropoff":
+                    empty_km.append((stop["odometer"] - prevStop["odometer"]) / 1000)
+                    continue
+                prevStop = stop
+        if len(stops_count) != 0:
+            avg_stops[str(item["_id"])] = (sum(stops_count) / len(stops_count))
+        if len(empty_km) != 0:
+            avg_empty_km[str(item["_id"])] = (sum(empty_km) / len(empty_km))
+        if len(wait_time) != 0:
+            avg_wait_time[str(item["_id"])] = (sum(wait_time) / len(wait_time))
+
+    return {
+        "avg_stops": avg_stops,
+        "avg_empty_km": avg_empty_km,
+        "avg_wait_time": avg_wait_time
+    }
+
+
+
 
 @app.post("/calculate-route")
 async def root(input: InputRouteModel):
