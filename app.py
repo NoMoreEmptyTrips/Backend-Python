@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from pymongo import MongoClient
 import requests
 from config import api_access_token, mongodb_connection_string
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import uuid
 
@@ -22,6 +22,9 @@ class InputRouteModel(BaseModel):
     prioritization: str = Field(
         "min-total-travel-duration",
         description="The wanted priorizization (Either 'min-total-travel-duration' or 'min-schedule-completion-time')",
+    )
+    number_of_buses: int = Field(
+        200, description="Number of buses that should be used for the route planning"
     )
     start_driving: datetime = Field(...)
     end_driving: datetime = Field(...)
@@ -52,7 +55,65 @@ routes_collection = hack_db.routes
 
 @app.post("/calculate-route")
 async def root(input: InputRouteModel):
-    print(input.start_driving.strftime('%Y-%m-%dT%H:%M:%S.%f%z'))
+    start_driving = input.start_driving.strftime("%Y-%m-%dT%H:%M:%SZ")
+    end_driving = input.end_driving.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Calculate the timedelta between the two datetime objects
+    time_difference = input.end_driving - input.start_driving
+
+    # Extract the number of hours from the timedelta
+    available_hours = time_difference.total_seconds() / 3600
+
+    # Define the duration of each driving period and each break
+    driving_duration = 10
+    break_duration = 8
+
+    # Calculate the number of full cycles (driving + break) that can be completed
+    full_cycles = available_hours // (driving_duration + break_duration)
+
+    # Calculate the remaining hours after completing full cycles
+    remaining_hours = available_hours % (driving_duration + break_duration)
+
+    # Check if there are enough remaining hours for another driving period
+    if remaining_hours >= driving_duration:
+        full_cycles += 1
+
+    print("Number of breaks needed:", full_cycles)
+
+    breaks_for_drivers = []
+    current_date = input.start_driving
+    hours_1 = 9.5
+    for i in range(int(full_cycles)):
+        hours_to_add_start = timedelta(hours=hours_1)
+        hours_to_add_end = timedelta(hours=9)
+        start_break = current_date + hours_to_add_start
+        end_break = start_break + hours_to_add_end
+        start_break_formatted = start_break.strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_break_formatted = end_break.strftime("%Y-%m-%dT%H:%M:%SZ")
+        current_date = end_break
+        breaks_for_drivers.append(
+            {
+                #"earliest_start": start_break_formatted,
+                #"latest_end": end_break_formatted,
+                #"duration": 28800,
+                "earliest_start": start_break_formatted, # #2023-02-17T12:30:00Z
+                "latest_end": end_break_formatted, # #
+                "duration": 28800
+            }
+        )
+        hours_1 = 9
+
+    print(breaks_for_drivers)
+
+    ''' breaks_for_drivers = [
+        {
+                "earliest_start": "2023-02-01T18:30:00Z", # #2023-02-17T12:30:00Z
+                "latest_end": "2023-02-02T03:30:00Z", # #
+                "duration": 28800
+            }
+    ] '''
+
+    #raise KeyError("HELLO")
     date_format = "%d.%m.%Y"
     date_object = datetime.strptime(input.delivery_date, date_format)
 
@@ -117,8 +178,15 @@ async def root(input: InputRouteModel):
                     "dropoff_duration": 10,
                     "pickup_times": [
                         {
-                            "earliest": input.start_driving.strftime('%Y-%m-%dT%H:%M:%S.%f%z'),
-                            "latest": "2023-02-03T09:15:00Z",
+                            "earliest": start_driving,
+                            "latest": end_driving,
+                            "type": "strict",
+                        }
+                    ],
+                    "dropoff_times": [
+                        {
+                            "earliest": start_driving,
+                            "latest": end_driving,
                             "type": "strict",
                         }
                     ],
@@ -142,13 +210,14 @@ async def root(input: InputRouteModel):
 
     vehicles = []
     value_id = 0
-    for i in range(200):
+    for i in range(input.number_of_buses):
         vehicles.append(
             {
                 "name": str(uuid.uuid1()),
                 "capacities": {"boxes": 100},
-                "earliest_start": "2023-02-01T09:15:00Z",
-                "latest_end": "2023-02-03T09:15:00Z",
+                "earliest_start": start_driving,
+                "latest_end": end_driving,
+
             }
         )
         value_id += 1
