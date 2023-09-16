@@ -275,6 +275,10 @@ async def root(input: InputRouteModel):
             api_route_response = check_response.json()
     copy = api_route_response.copy()
     copy["accepted"] = False
-    response = routes_collection.insert_one(copy)
-    api_route_response["route_id"] = str(response.inserted_id)
-    return api_route_response
+    try:
+        code = copy["code"]
+        return api_route_response
+    except KeyError:
+        response = routes_collection.insert_one(copy)
+        api_route_response["route_id"] = str(response.inserted_id)
+        return api_route_response
